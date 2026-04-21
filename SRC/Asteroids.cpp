@@ -57,23 +57,27 @@ void Asteroids::Start()
 	Animation *explosion_anim = AnimationManager::GetInstance().CreateAnimationFromFile("explosion", 64, 1024, 64, 64, "explosion_fs.png");
 	Animation *asteroid1_anim = AnimationManager::GetInstance().CreateAnimationFromFile("asteroid1", 128, 8192, 128, 128, "asteroid1_fs.png");
 	Animation *spaceship_anim = AnimationManager::GetInstance().CreateAnimationFromFile("spaceship", 128, 128, 128, 128, "spaceship_fs.png");
-
-	// Create a spaceship and add it to the world
-	mGameWorld->AddObject(CreateSpaceship());
-	// Create some asteroids and add them to the world
-	CreateAsteroids(10);
-
-	//Create the GUI
-	CreateGUI();
-
-	// Add a player (watcher) to the game world
-	mGameWorld->AddListener(&mPlayer);
-
-	// Add this class as a listener of the player
-	mPlayer.AddListener(thisPtr);
+	
+	// show the start screen
+	mGameStarted = false;
+	mStartLabel = make_shared<GUILabel>("Press Enter to Start");
+	mStartLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mStartLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	shared_ptr<GUIComponent> start_component = static_pointer_cast<GUIComponent>(mStartLabel);
+	mGameDisplay->GetContainer()->AddComponent(start_component, GLVector2f(0.5f, 0.5f));
 
 	// Start the game
 	GameSession::Start();
+}
+
+void Asteroids::StartGame() 
+{
+	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mStartLabel));
+	mGameWorld->AddObject(CreateSpaceship());
+	CreateAsteroids(10);
+	CreateGUI();
+	mGameWorld->AddListener(&mPlayer);
+	mPlayer.AddListener(shared_ptr<Asteroids>(this));
 }
 
 /** Stop the current game. */
@@ -89,12 +93,20 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 {
 	switch (key)
 	{
+	//menu
+	case '\r':
+		if (!mGameStarted) {
+			mGameStarted = true;
+			StartGame();
+		}
+		break;
+	//when started
 	case ' ':
-		mSpaceship->Shoot();
+		if (mGameStarted) mSpaceship->Shoot();
 		break;
 	default:
 		break;
-	}
+	} 
 }
 
 void Asteroids::OnKeyReleased(uchar key, int x, int y) {}
