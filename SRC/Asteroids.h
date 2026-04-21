@@ -21,6 +21,7 @@ public:
 	virtual ~Asteroids(void);
 
 	virtual void Start(void);
+	void StartGame();
 	virtual void Stop(void);
 
 	// Declaration of IKeyboardListener interface ////////////////////////////////
@@ -55,6 +56,9 @@ private:
 
 	uint mLevel;
 	uint mAsteroidCount;
+
+	bool mGameStarted;
+	shared_ptr<GUILabel> mStartLabel;
 
 	void ResetSpaceship();
 	shared_ptr<GameObject> CreateSpaceship();
