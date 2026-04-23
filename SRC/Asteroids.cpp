@@ -20,6 +20,11 @@ Asteroids::Asteroids(int argc, char *argv[])
 {
 	mLevel = 0;
 	mAsteroidCount = 0;
+	mMenuSelection = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		mMenuOptions[i] = nullptr;
+	}
 }
 
 /** Destructor. */
@@ -61,11 +66,21 @@ void Asteroids::Start()
 	// show the start screen
 	CreateMenuAsteroids(8);
 	mGameStarted = false;
-	mStartLabel = make_shared<GUILabel>("Press Enter to Start");
-	mStartLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
-	mStartLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
-	shared_ptr<GUIComponent> start_component = static_pointer_cast<GUIComponent>(mStartLabel);
-	mGameDisplay->GetContainer()->AddComponent(start_component, GLVector2f(0.5f, 0.5f));
+	
+	const char* menuTexts[4] = { "Game Start", "Difficulty", "Instructions","Leaderboard" };
+	float menuPositions[4] = { 0.6f,0.5f,0.4f,0.3f };
+
+	for (int i = 0; i < 4; i++)
+	{
+		mMenuOptions[i] = make_shared<GUILabel>(menuTexts[i]);
+		mMenuOptions[i]->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+		mMenuOptions[i]->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+		shared_ptr<GUIComponent> component = static_pointer_cast<GUIComponent>(mMenuOptions[i]);
+		mGameDisplay->GetContainer()->AddComponent(component, GLVector2f(0.5f, menuPositions[i]));
+	}
+
+	mMenuSelection = 0;
+	UpdateMenuSelect();
 
 	// Start the game
 	GameSession::Start();
@@ -74,7 +89,11 @@ void Asteroids::Start()
 void Asteroids::StartGame() 
 {
 	ClearMenuAsteroids();
-	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mStartLabel));
+	for (int i = 0; i < 4; i++)
+	{
+		mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mMenuOptions[i]));
+
+	}
 	CreateGUI();
 	mGameWorld->AddObject(CreateSpaceship());
 	CreateAsteroids(10);
@@ -98,8 +117,18 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 	//menu
 	case '\r':
 		if (!mGameStarted) {
-			mGameStarted = true;
-			StartGame();
+			switch (mMenuSelection) {
+			case 0:
+				mGameStarted = true;
+				StartGame();
+				break;
+			case 1:
+				break;
+			case 2:
+				break;
+			case 3:
+				break;
+			}
 		}
 		break;
 	//when started
@@ -111,25 +140,44 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 	} 
 }
 
-void Asteroids::OnKeyReleased(uchar key, int x, int y) {}
+void Asteroids::OnKeyReleased(uchar key, int x, int y) {
+}
 
 void Asteroids::OnSpecialKeyPressed(int key, int x, int y)
 {
-	switch (key)
+	if (!mGameStarted)
 	{
-	// If up arrow key is pressed start applying forward thrust
-	case GLUT_KEY_UP: mSpaceship->Thrust(10); break;
-	// If left arrow key is pressed start rotating anti-clockwise
-	case GLUT_KEY_LEFT: mSpaceship->Rotate(90); break;
-	// If right arrow key is pressed start rotating clockwise
-	case GLUT_KEY_RIGHT: mSpaceship->Rotate(-90); break;
-	// Default case - do nothing
-	default: break;
+		switch (key) 
+		{
+		case GLUT_KEY_UP:
+			mMenuSelection = (mMenuSelection - 1 + 4) % 4;
+			UpdateMenuSelect();
+			break;
+		case GLUT_KEY_DOWN:
+			mMenuSelection = (mMenuSelection + 1) % 4;
+			UpdateMenuSelect();
+			break;
+		default: break;
+		}
+	}
+	else {
+		switch (key)
+		{
+			// If up arrow key is pressed start applying forward thrust
+		case GLUT_KEY_UP: mSpaceship->Thrust(10); break;
+			// If left arrow key is pressed start rotating anti-clockwise
+		case GLUT_KEY_LEFT: mSpaceship->Rotate(90); break;
+			// If right arrow key is pressed start rotating clockwise
+		case GLUT_KEY_RIGHT: mSpaceship->Rotate(-90); break;
+			// Default case - do nothing
+		default: break;
+		}
 	}
 }
 
 void Asteroids::OnSpecialKeyReleased(int key, int x, int y)
 {
+	if (!mGameStarted) return;
 	switch (key)
 	{
 	// If up arrow key is released stop applying forward thrust
@@ -347,7 +395,16 @@ void Asteroids::ClearMenuAsteroids()
 	mMenuAsteroids.clear();
 }
 
-
+void Asteroids::UpdateMenuSelect() {
+	const char* menuTexts[4] = { "Game Start", "Difficulty", "Instructions","Leaderboard" };
+	for (int i = 0; i < 4; i++)
+	{
+		if (i == mMenuSelection)
+			mMenuOptions[i]->SetText(std::string("> ") + menuTexts[i]);
+		else
+			mMenuOptions[i]->SetText(menuTexts[i]);
+	}
+}
 
 
 
