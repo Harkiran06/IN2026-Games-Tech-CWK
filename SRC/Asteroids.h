@@ -10,6 +10,8 @@
 #include "Player.h"
 #include "IPlayerListener.h"
 
+#include <vector>
+
 class GameObject;
 class Spaceship;
 class GUILabel;
@@ -60,10 +62,14 @@ private:
 	bool mGameStarted;
 	shared_ptr<GUILabel> mStartLabel;
 
+	std::vector<shared_ptr<GameObject>> mMenuAsteroids;
+
 	void ResetSpaceship();
 	shared_ptr<GameObject> CreateSpaceship();
 	void CreateGUI();
 	void CreateAsteroids(const uint num_asteroids);
+	void CreateMenuAsteroids(const uint num_asteroids);
+	void ClearMenuAsteroids();
 	shared_ptr<GameObject> CreateExplosion();
 	
 	const static uint SHOW_GAME_OVER = 0;
