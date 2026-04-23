@@ -59,6 +59,7 @@ void Asteroids::Start()
 	Animation *spaceship_anim = AnimationManager::GetInstance().CreateAnimationFromFile("spaceship", 128, 128, 128, 128, "spaceship_fs.png");
 	
 	// show the start screen
+	CreateMenuAsteroids(8);
 	mGameStarted = false;
 	mStartLabel = make_shared<GUILabel>("Press Enter to Start");
 	mStartLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
@@ -72,10 +73,11 @@ void Asteroids::Start()
 
 void Asteroids::StartGame() 
 {
+	ClearMenuAsteroids();
 	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mStartLabel));
+	CreateGUI();
 	mGameWorld->AddObject(CreateSpaceship());
 	CreateAsteroids(10);
-	CreateGUI();
 	mGameWorld->AddListener(&mPlayer);
 	mPlayer.AddListener(shared_ptr<Asteroids>(this));
 }
@@ -146,16 +148,22 @@ void Asteroids::OnSpecialKeyReleased(int key, int x, int y)
 
 void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 {
-	if (object->GetType() == GameObjectType("Asteroid"))
+	if(object->GetType() == GameObjectType("Asteroid") && mGameStarted)
 	{
+		shared_ptr<Asteroid> asteroid = static_pointer_cast<Asteroid>(object);
+
+		if (asteroid->IsMenuAsteroid()) return;
+
 		shared_ptr<GameObject> explosion = CreateExplosion();
 		explosion->SetPosition(object->GetPosition());
 		explosion->SetRotation(object->GetRotation());
 		mGameWorld->AddObject(explosion);
+
 		mAsteroidCount--;
-		if (mAsteroidCount <= 0) 
-		{ 
-			SetTimer(500, START_NEXT_LEVEL); 
+
+		if (mAsteroidCount <= 0)
+		{
+			SetTimer(500, START_NEXT_LEVEL);
 		}
 	}
 }
@@ -260,6 +268,7 @@ void Asteroids::CreateGUI()
 
 void Asteroids::OnScoreChanged(int score)
 {
+	if (!mScoreLabel) return;
 	// Format the score message using an string-based stream
 	std::ostringstream msg_stream;
 	msg_stream << "Score: " << score;
@@ -303,6 +312,41 @@ shared_ptr<GameObject> Asteroids::CreateExplosion()
 	explosion->Reset();
 	return explosion;
 }
+
+//class for creating the asteroids that float in the menu of the background
+void Asteroids::CreateMenuAsteroids(const uint num_asteroids)
+{
+	mMenuAsteroids.clear();
+
+	for (uint i = 0; i < num_asteroids; i++)
+	{
+		Animation* anim_ptr = AnimationManager::GetInstance().GetAnimationByName("asteroid1");
+		shared_ptr<Sprite> asteroid_sprite =
+			make_shared<Sprite>(anim_ptr->GetWidth(), anim_ptr->GetHeight(), anim_ptr);
+
+		asteroid_sprite->SetLoopAnimation(true);
+
+		shared_ptr<Asteroid> asteroid = make_shared<Asteroid>();
+		asteroid->SetIsMenuAsteroid(true);
+		asteroid->SetBoundingShape(make_shared<BoundingSphere>(asteroid->GetThisPtr(), 10.0f));
+		asteroid->SetSprite(asteroid_sprite);
+		asteroid->SetScale(0.12f); 
+
+		mGameWorld->AddObject(asteroid);
+		mMenuAsteroids.push_back(asteroid);
+	}
+}
+
+//for clearing the menu asteroids before the game starts
+void Asteroids::ClearMenuAsteroids()
+{
+	for (uint i = 0; i < mMenuAsteroids.size(); i++)
+	{
+		mGameWorld->RemoveObject(mMenuAsteroids[i]);
+	}
+	mMenuAsteroids.clear();
+}
+
 
 
 
