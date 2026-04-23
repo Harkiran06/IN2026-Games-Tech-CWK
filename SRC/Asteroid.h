@@ -11,6 +11,13 @@ public:
 
 	bool CollisionTest(shared_ptr<GameObject> o);
 	void OnCollision(const GameObjectList& objects);
+
+	void SetIsMenuAsteroid(bool value) { mIsMenuAsteroid = value; }
+	bool IsMenuAsteroid() const { return mIsMenuAsteroid; }
+
+private:
+
+	bool mIsMenuAsteroid = false;
 };
 
 #endif
