@@ -60,7 +60,10 @@ private:
 	uint mAsteroidCount;
 
 	bool mGameStarted;
-	shared_ptr<GUILabel> mStartLabel;
+	
+	shared_ptr<GUILabel> mMenuOptions[4];
+	int mMenuSelection;
+	void UpdateMenuSelect();
 
 	std::vector<shared_ptr<GameObject>> mMenuAsteroids;
 
