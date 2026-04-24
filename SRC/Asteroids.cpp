@@ -12,6 +12,9 @@
 #include "GUILabel.h"
 #include "Explosion.h"
 
+#include <algorithm>
+#include <iostream>
+
 // PUBLIC INSTANCE CONSTRUCTORS ///////////////////////////////////////////////
 
 /** Constructor. Takes arguments from command line, just in case. */
@@ -26,6 +29,11 @@ Asteroids::Asteroids(int argc, char *argv[])
 		mMenuOptions[i] = nullptr;
 	}
 	mInstructionsPage = false;
+	mEnteringTag = false;
+	mTagSlot = 0;
+	mSlotChars[0] = 0;
+	mSlotChars[1] = 0;
+	mSlotChars[2] = 0;
 }
 
 /** Destructor. */
@@ -117,6 +125,11 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 	{
 	//menu
 	case '\r':
+		if (mEnteringTag) {
+			SaveScore();
+			HideTagEntry();
+			break;
+		}
 		if (mInstructionsPage) {
 			HideInstructions();
 		}
@@ -166,16 +179,47 @@ void Asteroids::OnSpecialKeyPressed(int key, int x, int y)
 		}
 	}
 	else {
-		switch (key)
+		if (mEnteringTag)
 		{
-			// If up arrow key is pressed start applying forward thrust
-		case GLUT_KEY_UP: mSpaceship->Thrust(10); break;
-			// If left arrow key is pressed start rotating anti-clockwise
-		case GLUT_KEY_LEFT: mSpaceship->Rotate(90); break;
-			// If right arrow key is pressed start rotating clockwise
-		case GLUT_KEY_RIGHT: mSpaceship->Rotate(-90); break;
-			// Default case - do nothing
-		default: break;
+			switch (key) {
+			case GLUT_KEY_UP:
+				mSlotChars[mTagSlot] = (mSlotChars[mTagSlot] + 1) % 26;
+				UpdateTagDisplay();
+				break;
+			case GLUT_KEY_DOWN:
+				mSlotChars[mTagSlot] = (mSlotChars[mTagSlot] - 1 + 26) % 26;
+				UpdateTagDisplay();
+				break;
+			case GLUT_KEY_RIGHT:
+				if (mTagSlot<2)
+				{
+					mTagSlot++;
+					UpdateTagDisplay();
+				}
+				break;
+			case GLUT_KEY_LEFT:
+				if (mTagSlot > 0)
+				{
+					mTagSlot--;
+					UpdateTagDisplay();
+				}
+				break;
+			default: break;
+			}
+		}
+		else
+		{
+			switch (key)
+			{
+				// If up arrow key is pressed start applying forward thrust
+			case GLUT_KEY_UP: mSpaceship->Thrust(10); break;
+				// If left arrow key is pressed start rotating anti-clockwise
+			case GLUT_KEY_LEFT: mSpaceship->Rotate(90); break;
+				// If right arrow key is pressed start rotating clockwise
+			case GLUT_KEY_RIGHT: mSpaceship->Rotate(-90); break;
+				// Default case - do nothing
+			default: break;
+			}
 		}
 	}
 }
@@ -241,8 +285,13 @@ void Asteroids::OnTimer(int value)
 	if (value == SHOW_GAME_OVER)
 	{
 		mGameOverLabel->SetVisible(true);
+		SetTimer(1500, SHOW_TAG_ENTRY);
 	}
 
+	if (value == SHOW_TAG_ENTRY)
+	{
+		ShowTagEntry();
+	}
 }
 
 // PROTECTED INSTANCE METHODS /////////////////////////////////////////////////
@@ -492,5 +541,103 @@ void Asteroids::HideInstructions()
 	UpdateMenuSelect();
 }
 
+void Asteroids::ShowTagEntry()
+{
+	mEnteringTag = true;
+	mTagSlot = 0;
+	mSlotChars[0] = 0;
+	mSlotChars[1] = 0;
+	mSlotChars[2] = 0;
+
+	// Prompt label
+	mTagPromptLabel = make_shared<GUILabel>("ENTER YOUR TAG");
+	mTagPromptLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mTagPromptLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mTagPromptLabel), GLVector2f(0.5f, 0.4f));
+
+	// Three character slot labels
+	float slotPositions[3] = { 0.4f, 0.5f, 0.6f };
+	for (int i = 0; i < 3; i++)
+	{
+		mTagSlotLabels[i] = make_shared<GUILabel>("A");
+		mTagSlotLabels[i]->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+		mTagSlotLabels[i]->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+		mGameDisplay->GetContainer()->AddComponent(
+			static_pointer_cast<GUIComponent>(mTagSlotLabels[i]), GLVector2f(slotPositions[i], 0.33f));
+	}
+
+	// Cursor label
+	mTagCursorLabel = make_shared<GUILabel>("^");
+	mTagCursorLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mTagCursorLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mTagCursorLabel), GLVector2f(slotPositions[0], 0.27f));
+
+	// Confirm label
+	mTagConfirmLabel = make_shared<GUILabel>("PRESS ENTER TO CONFIRM");
+	mTagConfirmLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mTagConfirmLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mTagConfirmLabel), GLVector2f(0.5f, 0.20f));
+
+	UpdateTagDisplay();
+}
+
+void Asteroids::HideTagEntry()
+{
+	mEnteringTag = false;
+	mGameDisplay->GetContainer()->RemoveComponent(
+		static_pointer_cast<GUIComponent>(mTagPromptLabel));
+	mGameDisplay->GetContainer()->RemoveComponent(
+		static_pointer_cast<GUIComponent>(mTagCursorLabel));
+	mGameDisplay->GetContainer()->RemoveComponent(
+		static_pointer_cast<GUIComponent>(mTagConfirmLabel));
+	for (int i = 0; i < 3; i++)
+		mGameDisplay->GetContainer()->RemoveComponent(
+			static_pointer_cast<GUIComponent>(mTagSlotLabels[i]));
+}
+
+void Asteroids::UpdateTagDisplay()
+{
+	float slotPositions[3] = { 0.4f, 0.5f, 0.6f };
+
+	for (int i = 0; i < 3; i++)
+	{
+		std::string ch(1, 'A' + mSlotChars[i]);
+		mTagSlotLabels[i]->SetText(ch);
+	}
+
+	// Move cursor under the active slot
+	mGameDisplay->GetContainer()->RemoveComponent(
+		static_pointer_cast<GUIComponent>(mTagCursorLabel));
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mTagCursorLabel),
+		GLVector2f(slotPositions[mTagSlot], 0.27f));
+}
+
+void Asteroids::SaveScore()
+{
+	ScoreEntry entry;
+	entry.tag = std::string(1, 'A' + mSlotChars[0])
+		+ std::string(1, 'A' + mSlotChars[1])
+		+ std::string(1, 'A' + mSlotChars[2]);
+	entry.score = mScoreKeeper.GetScore();
+
+	mHighScores.push_back(entry);
+
+	// Sort highest first
+	std::sort(mHighScores.begin(), mHighScores.end(),
+		[](const ScoreEntry& a, const ScoreEntry& b) {
+			return a.score > b.score;
+		});
+
+	// Keep top 10 only
+	if (mHighScores.size() > 10)
+		mHighScores.resize(10);
+
+	// Print to console to check
+	std::cout << "Tag: " << entry.tag << " Score: " << entry.score << std::endl;
+}
 
 

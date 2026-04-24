@@ -38,6 +38,10 @@ public:
 		}
 	}
 
+	int GetScore() {
+		return mScore;
+	}
+
 private:
 	int mScore;
 

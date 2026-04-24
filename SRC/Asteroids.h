@@ -51,6 +51,13 @@ public:
 	void OnTimer(int value);
 
 private:
+
+	// High score struct
+	struct ScoreEntry {
+		std::string tag;
+		int score;
+	};
+
 	shared_ptr<Spaceship> mSpaceship;
 	shared_ptr<GUILabel> mScoreLabel;
 	shared_ptr<GUILabel> mLivesLabel;
@@ -60,11 +67,16 @@ private:
 	uint mAsteroidCount;
 
 	bool mGameStarted;
+	// Tag entry state
+	bool mEnteringTag;
+	int mTagSlot;
+	int mSlotChars[3];
 	
 	shared_ptr<GUILabel> mMenuOptions[4];
 	int mMenuSelection;
 	void UpdateMenuSelect();
 
+	//Instructions page labels
 	shared_ptr<GUILabel> mInstructionsHeading;
 	shared_ptr<GUILabel> mInstructionsLine1;
 	shared_ptr<GUILabel> mInstructionsThrust;
@@ -74,11 +86,20 @@ private:
 	shared_ptr<GUILabel> mInstructionsLine2;
 	shared_ptr<GUILabel> mInstructionsBackBtn;
 
+	// Tag entry labels
+	shared_ptr<GUILabel> mTagPromptLabel;
+	shared_ptr<GUILabel> mTagSlotLabels[3];
+	shared_ptr<GUILabel> mTagConfirmLabel;
+	shared_ptr<GUILabel> mTagCursorLabel;
+
 	bool mInstructionsPage;
 	void ShowInstructions();
 	void HideInstructions();
 
 	std::vector<shared_ptr<GameObject>> mMenuAsteroids;
+
+	// High score storage
+	std::vector<ScoreEntry> mHighScores;
 
 	void ResetSpaceship();
 	shared_ptr<GameObject> CreateSpaceship();
@@ -91,9 +112,17 @@ private:
 	const static uint SHOW_GAME_OVER = 0;
 	const static uint START_NEXT_LEVEL = 1;
 	const static uint CREATE_NEW_PLAYER = 2;
+	const static uint SHOW_TAG_ENTRY = 3;
 
 	ScoreKeeper mScoreKeeper;
 	Player mPlayer;
+
+	// Tag entry methods
+	void ShowTagEntry();
+	void HideTagEntry();
+	void UpdateTagDisplay();
+	void SaveScore();
+
 };
 
 #endif
