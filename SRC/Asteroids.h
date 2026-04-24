@@ -65,6 +65,19 @@ private:
 	int mMenuSelection;
 	void UpdateMenuSelect();
 
+	shared_ptr<GUILabel> mInstructionsHeading;
+	shared_ptr<GUILabel> mInstructionsLine1;
+	shared_ptr<GUILabel> mInstructionsThrust;
+	shared_ptr<GUILabel> mInstructionsLeftRot;
+	shared_ptr<GUILabel> mInstructionsRightRot;
+	shared_ptr<GUILabel> mInstructionsShoot;
+	shared_ptr<GUILabel> mInstructionsLine2;
+	shared_ptr<GUILabel> mInstructionsBackBtn;
+
+	bool mInstructionsPage;
+	void ShowInstructions();
+	void HideInstructions();
+
 	std::vector<shared_ptr<GameObject>> mMenuAsteroids;
 
 	void ResetSpaceship();

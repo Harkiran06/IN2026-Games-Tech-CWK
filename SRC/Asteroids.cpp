@@ -25,6 +25,7 @@ Asteroids::Asteroids(int argc, char *argv[])
 	{
 		mMenuOptions[i] = nullptr;
 	}
+	mInstructionsPage = false;
 }
 
 /** Destructor. */
@@ -116,7 +117,10 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 	{
 	//menu
 	case '\r':
-		if (!mGameStarted) {
+		if (mInstructionsPage) {
+			HideInstructions();
+		}
+		else if (!mGameStarted) {
 			switch (mMenuSelection) {
 			case 0:
 				mGameStarted = true;
@@ -125,6 +129,7 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 			case 1:
 				break;
 			case 2:
+				ShowInstructions();
 				break;
 			case 3:
 				break;
@@ -404,6 +409,87 @@ void Asteroids::UpdateMenuSelect() {
 		else
 			mMenuOptions[i]->SetText(menuTexts[i]);
 	}
+}
+
+void Asteroids::ShowInstructions()
+{
+	mInstructionsPage = true;
+
+	for (int i = 0; i < 4; i++)
+		mMenuOptions[i]->SetVisible(false);
+
+	// Title
+	mInstructionsHeading = make_shared<GUILabel>("-- INSTRUCTIONS --");
+	mInstructionsHeading->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mInstructionsHeading->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mInstructionsHeading), GLVector2f(0.5f, 0.75f));
+
+	// Separator at top
+	mInstructionsLine1 = make_shared<GUILabel>("----------------------");
+	mInstructionsLine1->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mInstructionsLine1->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mInstructionsLine1), GLVector2f(0.5f, 0.68f));
+
+	// Controls yay :D
+	mInstructionsThrust = make_shared<GUILabel>("Arrow Up      -  Thrust");
+	mInstructionsThrust->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mInstructionsThrust->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mInstructionsThrust), GLVector2f(0.5f, 0.61f));
+
+	mInstructionsLeftRot = make_shared<GUILabel>("Arrow Left    -  Rotate Left");
+	mInstructionsLeftRot->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mInstructionsLeftRot->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mInstructionsLeftRot), GLVector2f(0.5f, 0.54f));
+
+	mInstructionsRightRot = make_shared<GUILabel>("Arrow Right   -  Rotate Right");
+	mInstructionsRightRot->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mInstructionsRightRot->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mInstructionsRightRot), GLVector2f(0.5f, 0.47f));
+
+	mInstructionsShoot = make_shared<GUILabel>("Space         -  Shoot");
+	mInstructionsShoot->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mInstructionsShoot->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mInstructionsShoot), GLVector2f(0.5f, 0.40f));
+
+	// Separator at bottom 
+	mInstructionsLine2 = make_shared<GUILabel>("----------------------");
+	mInstructionsLine2->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mInstructionsLine2->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mInstructionsLine2), GLVector2f(0.5f, 0.33f));
+
+	// Back to menu
+	mInstructionsBackBtn = make_shared<GUILabel>("> BACK");
+	mInstructionsBackBtn->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mInstructionsBackBtn->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mInstructionsBackBtn), GLVector2f(0.5f, 0.25f));
+}
+
+void Asteroids::HideInstructions()
+{
+	mInstructionsPage = false;
+
+	// Remove all instructions labels
+	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mInstructionsHeading));
+	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mInstructionsLine1));
+	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mInstructionsThrust));
+	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mInstructionsLeftRot));
+	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mInstructionsRightRot));
+	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mInstructionsShoot));
+	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mInstructionsLine2));
+	mGameDisplay->GetContainer()->RemoveComponent(static_pointer_cast<GUIComponent>(mInstructionsBackBtn));
+
+	for (int i = 0; i < 4; i++)
+		mMenuOptions[i]->SetVisible(true);
+
+	UpdateMenuSelect();
 }
 
 
