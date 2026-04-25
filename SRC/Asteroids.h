@@ -11,6 +11,9 @@
 #include "IPlayerListener.h"
 
 #include <vector>
+#include <fstream>
+#include <sstream>
+
 
 class GameObject;
 class Spaceship;
@@ -122,6 +125,14 @@ private:
 	void HideTagEntry();
 	void UpdateTagDisplay();
 	void SaveScore();
+
+	//Leaderboard
+	bool mLeaderboardTable;
+	std::vector<shared_ptr<GUILabel>> mLeaderboardLabels;
+	void ShowLeaderboard();
+	void HideLeaderboard();
+	void SaveScoresTXT();
+	void LoadScores();
 
 };
 

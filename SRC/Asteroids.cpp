@@ -35,6 +35,7 @@ Asteroids::Asteroids(int argc, char *argv[])
 	mSlotChars[0] = 0;
 	mSlotChars[1] = 0;
 	mSlotChars[2] = 0;
+	mLeaderboardTable = false;
 }
 
 /** Destructor. */
@@ -49,6 +50,7 @@ void Asteroids::Start()
 {
 	AllocConsole();
 	freopen("CONOUT$", "w", stdout);
+
 	// Create a shared pointer for the Asteroids game object - DO NOT REMOVE
 	shared_ptr<Asteroids> thisPtr = shared_ptr<Asteroids>(this);
 
@@ -94,6 +96,7 @@ void Asteroids::Start()
 	mMenuSelection = 0;
 	UpdateMenuSelect();
 
+	LoadScores();
 	// Start the game
 	GameSession::Start();
 }
@@ -136,6 +139,9 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 		if (mInstructionsPage) {
 			HideInstructions();
 		}
+		else if (mLeaderboardTable) {
+			HideLeaderboard();
+		}
 		else if (!mGameStarted) {
 			switch (mMenuSelection) {
 			case 0:
@@ -148,6 +154,7 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 				ShowInstructions();
 				break;
 			case 3:
+				ShowLeaderboard();
 				break;
 			}
 		}
@@ -641,6 +648,105 @@ void Asteroids::SaveScore()
 
 	// Print to console to check
 	std::cout << "Tag: " << entry.tag << " Score: " << entry.score << std::endl;
+
+	SaveScoresTXT();
 }
+
+void Asteroids::SaveScoresTXT() {
+	std::ofstream file("leaderboard.txt");
+	if (!file.is_open()) return;
+
+	for (const ScoreEntry& e : mHighScores)
+		file << e.tag << " " << e.score << "\n";
+}
+
+void Asteroids::LoadScores() {
+	std::ifstream file("leaderboard.txt");
+	if (!file.is_open()) return;
+
+	mHighScores.clear();
+	std::string line;
+	while (std::getline(file, line)) {
+		if (line.empty()) continue;
+		std::istringstream ss(line);
+		ScoreEntry e;
+		if (ss >> e.tag >> e.score)
+			mHighScores.push_back(e);
+	}
+	std::sort(mHighScores.begin(), mHighScores.end(), [](const ScoreEntry& a, const ScoreEntry& b) {
+		return a.score > b.score;
+		});
+	if (mHighScores.size() > 10)
+		mHighScores.resize(10);
+}
+
+void Asteroids::ShowLeaderboard()
+{
+	mLeaderboardTable = true;
+	mLeaderboardLabels.clear();
+
+	// Hide the main menu options
+	for (int i = 0; i < 4; i++)
+		mMenuOptions[i]->SetVisible(false);
+
+	// Helper lambda to create, register and store a label
+	auto addLabel = [&](const std::string& text, float x, float y)
+		{
+			shared_ptr<GUILabel> lbl = make_shared<GUILabel>(text);
+			lbl->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+			lbl->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+			mGameDisplay->GetContainer()->AddComponent(
+				static_pointer_cast<GUIComponent>(lbl), GLVector2f(x, y));
+			mLeaderboardLabels.push_back(lbl);
+		};
+
+	addLabel("-- HIGH SCORES --", 0.5f, 0.88f);
+	addLabel("--------------------", 0.5f, 0.82f);
+
+	// Score rows — up to 10 entries, evenly spaced between y=0.76 and y=0.28
+	const int maxRows = 10;
+	const float rowTop = 0.76f;
+	const float rowStep = 0.052f;
+
+	for (int i = 0; i < maxRows; i++)
+	{
+		float y = rowTop - i * rowStep;
+		std::ostringstream oss;
+		if (i < (int)mHighScores.size())
+		{
+			oss << (i + 1) << ".  "
+				<< mHighScores[i].tag
+				<< "   "
+				<< mHighScores[i].score;
+		}
+		else
+		{
+			oss << (i + 1) << ".  ---";
+		}
+		addLabel(oss.str(), 0.5f, y);
+	}
+
+	addLabel("--------------------", 0.5f, 0.22f);
+	addLabel("> BACK", 0.5f, 0.15f);
+}
+
+void Asteroids::HideLeaderboard()
+{
+	mLeaderboardTable = false;
+
+	for (shared_ptr<GUILabel>& lbl : mLeaderboardLabels)
+		mGameDisplay->GetContainer()->RemoveComponent(
+			static_pointer_cast<GUIComponent>(lbl));
+
+	mLeaderboardLabels.clear();
+
+	for (int i = 0; i < 4; i++)
+		mMenuOptions[i]->SetVisible(true);
+
+	UpdateMenuSelect();
+}
+
+
+
 
 
