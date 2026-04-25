@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <windows.h>
 
 // PUBLIC INSTANCE CONSTRUCTORS ///////////////////////////////////////////////
 
@@ -46,6 +47,8 @@ Asteroids::~Asteroids(void)
 /** Start an asteroids game. */
 void Asteroids::Start()
 {
+	AllocConsole();
+	freopen("CONOUT$", "w", stdout);
 	// Create a shared pointer for the Asteroids game object - DO NOT REMOVE
 	shared_ptr<Asteroids> thisPtr = shared_ptr<Asteroids>(this);
 
