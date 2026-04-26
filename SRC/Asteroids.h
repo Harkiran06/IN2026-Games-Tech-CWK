@@ -47,6 +47,32 @@ private:
 	bool mCollectedByPlayer;
 };
 
+class ExtraLifePickup : public GameObject
+{
+public:
+	ExtraLifePickup()
+		: GameObject("ExtraLifePickup"), mCollectedByPlayer(false) {
+	}
+
+	bool CollisionTest(shared_ptr<GameObject> o)
+	{
+		if (o->GetType() != GameObjectType("Spaceship")) return false;
+		if (!mBoundingShape || !o->GetBoundingShape()) return false;
+		return mBoundingShape->CollisionTest(o->GetBoundingShape());
+	}
+
+	void OnCollision(const GameObjectList& objects)
+	{
+		mCollectedByPlayer = true;
+		mWorld->FlagForRemoval(GetThisPtr());
+	}
+
+	bool WasCollectedByPlayer() const { return mCollectedByPlayer; }
+
+private:
+	bool mCollectedByPlayer;
+};
+
 class Asteroids : public GameSession, public IKeyboardListener, public IGameWorldListener, public IScoreListener, public IPlayerListener
 {
 public:
@@ -183,6 +209,13 @@ private:
 	const static uint SHIELD_TICK = 8;
 
 	bool mPickupCollected;
+
+	shared_ptr<GameObject> mExtraLifePickup;
+	shared_ptr<GUILabel> mExtraLifePickupLabel;
+	void SpawnExtraLifePickup();
+	void CollectExtraLife();
+
+	const static uint SPAWN_EXTRA_LIFE = 9;
 };
 
 #endif

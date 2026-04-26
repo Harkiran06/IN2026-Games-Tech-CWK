@@ -47,6 +47,9 @@ Asteroids::Asteroids(int argc, char *argv[])
 	mShieldTimeLeft = 0;
 	mShieldTimeLbl = nullptr;
 	mPickupCollected = false;
+
+	mExtraLifePickup = nullptr;
+	mExtraLifePickupLabel = nullptr;
 }
 
 /** Destructor. */
@@ -128,6 +131,7 @@ void Asteroids::StartGame()
 
 	if (mPowerUpsEnabled) {
 		SetTimer(8000, SPAWN_INVULN_PICKUP);
+		SetTimer(12000, SPAWN_INVULN_PICKUP);
 	}
 }
 
@@ -272,6 +276,26 @@ void Asteroids::OnSpecialKeyReleased(int key, int x, int y)
 
 void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 { 
+	if (object->GetType() == GameObjectType("ExtraLifePickup") && mGameStarted)
+	{
+		shared_ptr<ExtraLifePickup> pickup =
+			static_pointer_cast<ExtraLifePickup>(object);
+		if (pickup->WasCollectedByPlayer())
+		{
+			CollectExtraLife();
+		}
+		else
+		{
+			if (mExtraLifePickupLabel)
+			{
+				mGameDisplay->GetContainer()->RemoveComponent(
+					static_pointer_cast<GUIComponent>(mExtraLifePickupLabel));
+				mExtraLifePickupLabel = nullptr;
+			}
+			mExtraLifePickup = nullptr;
+		}
+		return;
+	}
 	if (object->GetType() == GameObjectType("InvulnerabilityPickup") && mGameStarted)
 	{
 		shared_ptr<InvulnerabilityPickup> pickup =
@@ -380,6 +404,11 @@ void Asteroids::OnTimer(int value)
 				SetTimer(1000, SHIELD_TICK);
 			}
 		}
+	}
+	if (value == SPAWN_EXTRA_LIFE)
+	{
+		if (mPowerUpsEnabled && mGameStarted)
+			SpawnExtraLifePickup();
 	}
 }
 
@@ -875,7 +904,6 @@ void Asteroids::SpawnInvulnerabilityPickup()
 		static_pointer_cast<GUIComponent>(mInvulnerabilityPickupLabel),
 		GLVector2f(0.5f, 0.85f));
 
-	// Schedule next spawn after 20 seconds
 	SetTimer(20000, SPAWN_INVULN_PICKUP);
 }
 
@@ -884,7 +912,6 @@ void Asteroids::ActivateInvulnerability()
 	mInvulnerable = true;
 	mSpaceship->SetInvulnerable(true);
 
-	// Remove the pickup label now it has been collected
 	if (mInvulnerabilityPickupLabel)
 	{
 		mGameDisplay->GetContainer()->RemoveComponent(
@@ -900,11 +927,9 @@ void Asteroids::ActivateInvulnerability()
 	mShieldTimeLbl->SetVisible(true);
 	SetTimer(1000, SHIELD_TICK);
 	
-	// Show shield HUD label and start flashing it  
 	mShieldLabel->SetVisible(true);
 	SetTimer(400, FLASH_SHIELD_OFF);
-	
-	// Schedule deactivation after 5 seconds 
+
 	SetTimer(5000, END_INVULNERABILITY);
 }
 
@@ -916,6 +941,52 @@ void Asteroids::DeactivateInvulnerability()
 	mShieldTimeLbl->SetVisible(false);
 }
 
+void Asteroids::SpawnExtraLifePickup()
+{
+	if (mExtraLifePickup) return;
+
+	shared_ptr<ExtraLifePickup> pickup = make_shared<ExtraLifePickup>();
+
+	float x = ((rand() % 140) - 70) * 1.0f;
+	float y = ((rand() % 100) - 50) * 1.0f;
+	pickup->SetPosition(GLVector3f(x, y, 0));
+	pickup->SetVelocity(GLVector3f(0, 0, 0));
+	pickup->SetBoundingShape(
+		make_shared<BoundingSphere>(pickup->GetThisPtr(), 6.0f));
+
+	shared_ptr<Shape> pickup_shape = make_shared<Shape>("bullet.shape");
+	pickup->SetShape(pickup_shape);
+	pickup->SetScale(2.5f);
+
+	mGameWorld->AddObject(pickup);
+	mExtraLifePickup = pickup;
+
+	mExtraLifePickupLabel = make_shared<GUILabel>("[ +LIFE ]");
+	mExtraLifePickupLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mExtraLifePickupLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mExtraLifePickupLabel),
+		GLVector2f(0.5f, 0.80f));
+
+	SetTimer(25000, SPAWN_EXTRA_LIFE);
+}
+
+void Asteroids::CollectExtraLife()
+{
+	if (mExtraLifePickupLabel)
+	{
+		mGameDisplay->GetContainer()->RemoveComponent(
+			static_pointer_cast<GUIComponent>(mExtraLifePickupLabel));
+		mExtraLifePickupLabel = nullptr;
+	}
+	mExtraLifePickup = nullptr;
+
+	mPlayer.AddLife();
+
+	std::ostringstream msg;
+	msg << "Lives: " << mPlayer.GetLives();
+	mLivesLabel->SetText(msg.str());
+}
 
 
 
