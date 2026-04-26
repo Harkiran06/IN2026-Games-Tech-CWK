@@ -134,6 +134,21 @@ private:
 	void SaveScoresTXT();
 	void LoadScores();
 
+	bool mPowerUpsEnabled;
+	bool mInvulnerable;
+	shared_ptr<GameObject> mInvulnerabilityPickup;
+	shared_ptr<GUILabel> mShieldLabel;
+	shared_ptr<GUILabel> mInvulnerabilityPickupLabel;
+
+	void SpawnInvulnerabilityPickup();
+	void ActivateInvulnerability();
+	void DeactivateInvulnerability();
+
+	const static uint END_INVULNERABILITY = 4;
+	const static uint SPAWN_INVULN_PICKUP = 5;
+	const static uint FLASH_SHIELD_ON = 6;
+	const static uint FLASH_SHIELD_OFF = 7;
+
 };
 
 #endif

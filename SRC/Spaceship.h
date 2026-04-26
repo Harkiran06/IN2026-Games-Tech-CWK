@@ -27,12 +27,17 @@ public:
 	bool CollisionTest(shared_ptr<GameObject> o);
 	void OnCollision(const GameObjectList &objects);
 
+	void SetInvulnerable(bool inv) { mInvulnerable = inv; }
+	bool IsInvulnerable() const { return mInvulnerable; }
+
 private:
 	float mThrust;
 
 	shared_ptr<Shape> mSpaceshipShape;
 	shared_ptr<Shape> mThrusterShape;
 	shared_ptr<Shape> mBulletShape;
+
+	bool mInvulnerable;
 };
 
 #endif

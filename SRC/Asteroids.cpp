@@ -11,10 +11,13 @@
 #include "BoundingSphere.h"
 #include "GUILabel.h"
 #include "Explosion.h"
+#include "InvulnerabilityPickup.h"
 
 #include <algorithm>
 #include <iostream>
 #include <windows.h>
+
+
 
 // PUBLIC INSTANCE CONSTRUCTORS ///////////////////////////////////////////////
 
@@ -36,6 +39,12 @@ Asteroids::Asteroids(int argc, char *argv[])
 	mSlotChars[1] = 0;
 	mSlotChars[2] = 0;
 	mLeaderboardTable = false;
+
+	mPowerUpsEnabled = false;
+	mInvulnerable = false;
+	mInvulnerabilityPickup = nullptr;
+	mShieldLabel = nullptr;
+	mInvulnerabilityPickupLabel = nullptr;
 }
 
 /** Destructor. */
@@ -114,6 +123,10 @@ void Asteroids::StartGame()
 	CreateAsteroids(10);
 	mGameWorld->AddListener(&mPlayer);
 	mPlayer.AddListener(shared_ptr<Asteroids>(this));
+
+	if (mPowerUpsEnabled) {
+		SetTimer(8000, SPAWN_INVULN_PICKUP);
+	}
 }
 
 /** Stop the current game. */
@@ -149,6 +162,9 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 				StartGame();
 				break;
 			case 1:
+				mPowerUpsEnabled = !mPowerUpsEnabled;
+				mMenuOptions[1]->SetText(mPowerUpsEnabled ? "Difficulty: EASY (Power-Ups ON)" : "Difficulty");
+				UpdateMenuSelect();
 				break;
 			case 2:
 				ShowInstructions();
@@ -254,7 +270,11 @@ void Asteroids::OnSpecialKeyReleased(int key, int x, int y)
 // PUBLIC INSTANCE METHODS IMPLEMENTING IGameWorldListener ////////////////////
 
 void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
-{
+{ 
+	if (object->GetType() == GameObjectType("InvulnerabilityPickup") && mGameStarted) {
+		ActivateInvulnerability();
+		return;
+	}
 	if(object->GetType() == GameObjectType("Asteroid") && mGameStarted)
 	{
 		shared_ptr<Asteroid> asteroid = static_pointer_cast<Asteroid>(object);
@@ -302,6 +322,35 @@ void Asteroids::OnTimer(int value)
 	{
 		ShowTagEntry();
 	}
+	if (value == SPAWN_INVULN_PICKUP)
+	{
+		if (mPowerUpsEnabled && mGameStarted)
+			SpawnInvulnerabilityPickup();
+	}
+
+	if (value == END_INVULNERABILITY)
+	{
+		DeactivateInvulnerability();
+	}
+
+	if (value == FLASH_SHIELD_ON)
+	{
+		if (mInvulnerable)
+		{
+			mShieldLabel->SetVisible(true);
+			SetTimer(400, FLASH_SHIELD_OFF);
+		}
+	}
+
+	if (value == FLASH_SHIELD_OFF)
+	{
+		if (mInvulnerable)
+		{
+			mShieldLabel->SetVisible(false);
+			SetTimer(400, FLASH_SHIELD_ON);
+		}
+	}
+
 }
 
 // PROTECTED INSTANCE METHODS /////////////////////////////////////////////////
@@ -375,6 +424,14 @@ void Asteroids::CreateGUI()
 	shared_ptr<GUIComponent> game_over_component
 		= static_pointer_cast<GUIComponent>(mGameOverLabel);
 	mGameDisplay->GetContainer()->AddComponent(game_over_component, GLVector2f(0.5f, 0.5f));
+
+	mShieldLabel = make_shared<GUILabel>("*** SHIELD ACTIVE ***");
+	mShieldLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mShieldLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mShieldLabel->SetVisible(false);
+	shared_ptr<GUIComponent> shield_component =
+		static_pointer_cast<GUIComponent>(mShieldLabel);
+	mGameDisplay->GetContainer()->AddComponent(shield_component, GLVector2f(0.5f, 0.9f));
 
 }
 
@@ -703,7 +760,6 @@ void Asteroids::ShowLeaderboard()
 	addLabel("-- HIGH SCORES --", 0.5f, 0.88f);
 	addLabel("--------------------", 0.5f, 0.82f);
 
-	// Score rows — up to 10 entries, evenly spaced between y=0.76 and y=0.28
 	const int maxRows = 10;
 	const float rowTop = 0.76f;
 	const float rowStep = 0.052f;
@@ -744,6 +800,70 @@ void Asteroids::HideLeaderboard()
 		mMenuOptions[i]->SetVisible(true);
 
 	UpdateMenuSelect();
+}
+
+void Asteroids::SpawnInvulnerabilityPickup()
+{
+	// Don't spawn a second one if one is already on screen
+	if (mInvulnerabilityPickup) return;
+
+	shared_ptr<InvulnerabilityPickup> pickup = make_shared<InvulnerabilityPickup>();
+
+	// Random position well inside screen bounds
+	float x = ((rand() % 140) - 70) * 1.0f;   // roughly -70 to +70
+	float y = ((rand() % 100) - 50) * 1.0f;   // roughly -50 to +50
+	pickup->SetPosition(GLVector3f(x, y, 0));
+	pickup->SetVelocity(GLVector3f(0, 0, 0));
+	pickup->SetBoundingShape(
+		make_shared<BoundingSphere>(pickup->GetThisPtr(), 3.0f));
+
+	// Reuse bullet shape as a visible marker (small diamond on screen)
+	shared_ptr<Shape> pickup_shape = make_shared<Shape>("bullet.shape");
+	pickup->SetShape(pickup_shape);
+	pickup->SetScale(2.5f);
+
+	mGameWorld->AddObject(pickup);
+	mInvulnerabilityPickup = pickup;
+
+	// GUI label that floats near the pickup to identify it
+	mInvulnerabilityPickupLabel = make_shared<GUILabel>("[ SHIELD ]");
+	mInvulnerabilityPickupLabel->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mInvulnerabilityPickupLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mGameDisplay->GetContainer()->AddComponent(
+		static_pointer_cast<GUIComponent>(mInvulnerabilityPickupLabel),
+		GLVector2f(0.5f, 0.85f));  // fixed position label — clearly visible
+
+	// Schedule next spawn after 20 seconds
+	SetTimer(20000, SPAWN_INVULN_PICKUP);
+}
+
+void Asteroids::ActivateInvulnerability()
+{
+	mInvulnerable = true;
+	mSpaceship->SetInvulnerable(true);
+
+	// Remove the pickup label now it has been collected
+	if (mInvulnerabilityPickupLabel)
+	{
+		mGameDisplay->GetContainer()->RemoveComponent(
+			static_pointer_cast<GUIComponent>(mInvulnerabilityPickupLabel));
+		mInvulnerabilityPickupLabel = nullptr;
+	}
+	mInvulnerabilityPickup = nullptr;
+
+	// Show shield HUD label and start flashing it
+	mShieldLabel->SetVisible(true);
+	SetTimer(400, FLASH_SHIELD_OFF);
+
+	// Schedule deactivation after 5 seconds
+	SetTimer(5000, END_INVULNERABILITY);
+}
+
+void Asteroids::DeactivateInvulnerability()
+{
+	mInvulnerable = false;
+	mSpaceship->SetInvulnerable(false);
+	mShieldLabel->SetVisible(false);
 }
 
 
