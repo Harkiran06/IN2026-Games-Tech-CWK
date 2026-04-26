@@ -25,8 +25,7 @@ class InvulnerabilityPickup : public GameObject
 {
 public:
 	InvulnerabilityPickup()
-		: GameObject("InvulnerabilityPickup") {
-	}
+		: GameObject("InvulnerabilityPickup"), mCollectedByPlayer(false) {}
 
 	bool CollisionTest(shared_ptr<GameObject> o)
 	{
@@ -37,8 +36,15 @@ public:
 
 	void OnCollision(const GameObjectList& objects)
 	{
+		mCollectedByPlayer = true;
 		mWorld->FlagForRemoval(GetThisPtr());
 	}
+	bool wasCollectedByPlayer() const{
+		return mCollectedByPlayer; 
+	}
+
+private:
+	bool mCollectedByPlayer;
 };
 
 class Asteroids : public GameSession, public IKeyboardListener, public IGameWorldListener, public IScoreListener, public IPlayerListener
@@ -172,6 +178,11 @@ private:
 	const static uint FLASH_SHIELD_ON = 6;
 	const static uint FLASH_SHIELD_OFF = 7;
 
+	shared_ptr<GUILabel> mShieldTimeLbl;
+	int mShieldTimeLeft;
+	const static uint SHIELD_TICK = 8;
+
+	bool mPickupCollected;
 };
 
 #endif

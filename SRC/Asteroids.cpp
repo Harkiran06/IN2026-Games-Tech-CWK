@@ -44,6 +44,9 @@ Asteroids::Asteroids(int argc, char *argv[])
 	mInvulnerabilityPickup = nullptr;
 	mShieldLabel = nullptr;
 	mInvulnerabilityPickupLabel = nullptr;
+	mShieldTimeLeft = 0;
+	mShieldTimeLbl = nullptr;
+	mPickupCollected = false;
 }
 
 /** Destructor. */
@@ -162,7 +165,6 @@ void Asteroids::OnKeyPressed(uchar key, int x, int y)
 				break;
 			case 1:
 				mPowerUpsEnabled = !mPowerUpsEnabled;
-				mMenuOptions[1]->SetText(mPowerUpsEnabled ? "Difficulty: EASY (Power-Ups ON)" : "Difficulty");
 				UpdateMenuSelect();
 				break;
 			case 2:
@@ -270,8 +272,24 @@ void Asteroids::OnSpecialKeyReleased(int key, int x, int y)
 
 void Asteroids::OnObjectRemoved(GameWorld* world, shared_ptr<GameObject> object)
 { 
-	if (object->GetType() == GameObjectType("InvulnerabilityPickup") && mGameStarted) {
-		ActivateInvulnerability();
+	if (object->GetType() == GameObjectType("InvulnerabilityPickup") && mGameStarted)
+	{
+		shared_ptr<InvulnerabilityPickup> pickup =
+			static_pointer_cast<InvulnerabilityPickup>(object);
+		if (pickup->wasCollectedByPlayer())
+		{
+			ActivateInvulnerability();
+		}
+		else
+		{
+			if (mInvulnerabilityPickupLabel)
+			{
+				mGameDisplay->GetContainer()->RemoveComponent(
+					static_pointer_cast<GUIComponent>(mInvulnerabilityPickupLabel));
+				mInvulnerabilityPickupLabel = nullptr;
+			}
+			mInvulnerabilityPickup = nullptr;
+		}
 		return;
 	}
 	if(object->GetType() == GameObjectType("Asteroid") && mGameStarted)
@@ -349,7 +367,20 @@ void Asteroids::OnTimer(int value)
 			SetTimer(400, FLASH_SHIELD_ON);
 		}
 	}
-
+	if (value == SHIELD_TICK)
+	{
+		if (mInvulnerable)
+		{
+			mShieldTimeLeft--;
+			if (mShieldTimeLeft > 0)
+			{
+				std::ostringstream msg;
+				msg << "SHIELD: " << mShieldTimeLeft << "s";
+				mShieldTimeLbl->SetText(msg.str());
+				SetTimer(1000, SHIELD_TICK);
+			}
+		}
+	}
 }
 
 // PROTECTED INSTANCE METHODS /////////////////////////////////////////////////
@@ -431,6 +462,15 @@ void Asteroids::CreateGUI()
 	shared_ptr<GUIComponent> shield_component =
 		static_pointer_cast<GUIComponent>(mShieldLabel);
 	mGameDisplay->GetContainer()->AddComponent(shield_component, GLVector2f(0.5f, 0.9f));
+
+	mShieldTimeLbl = make_shared<GUILabel>("");
+	mShieldTimeLbl->SetHorizontalAlignment(GUIComponent::GUI_HALIGN_CENTER);
+	mShieldTimeLbl->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
+	mShieldTimeLbl->SetVisible(false);
+	shared_ptr<GUIComponent> shield_timer_component =
+		static_pointer_cast<GUIComponent>(mShieldTimeLbl);
+	mGameDisplay->GetContainer()->AddComponent(shield_timer_component, GLVector2f(0.5f, 0.85f));
+
 
 }
 
@@ -516,13 +556,16 @@ void Asteroids::ClearMenuAsteroids()
 }
 
 void Asteroids::UpdateMenuSelect() {
-	const char* menuTexts[4] = { "Game Start", "Difficulty", "Instructions","Leaderboard" };
+	const char* menuTexts[4] = { "Game Start", "Difficulty", "Instructions", "Leaderboard" };
+	const char* difficultyText = mPowerUpsEnabled ? "Difficulty: EASY (Power-Ups ON)" : "Difficulty";
+
 	for (int i = 0; i < 4; i++)
 	{
+		const char* baseText = (i == 1) ? difficultyText : menuTexts[i];
 		if (i == mMenuSelection)
-			mMenuOptions[i]->SetText(std::string("> ") + menuTexts[i]);
+			mMenuOptions[i]->SetText(std::string("> ") + baseText);
 		else
-			mMenuOptions[i]->SetText(menuTexts[i]);
+			mMenuOptions[i]->SetText(baseText);
 	}
 }
 
@@ -814,7 +857,7 @@ void Asteroids::SpawnInvulnerabilityPickup()
 	pickup->SetPosition(GLVector3f(x, y, 0));
 	pickup->SetVelocity(GLVector3f(0, 0, 0));
 	pickup->SetBoundingShape(
-		make_shared<BoundingSphere>(pickup->GetThisPtr(), 3.0f));
+		make_shared<BoundingSphere>(pickup->GetThisPtr(), 6.0f));
 
 	// Reuse bullet shape as a visible marker (small diamond on screen)
 	shared_ptr<Shape> pickup_shape = make_shared<Shape>("bullet.shape");
@@ -850,11 +893,18 @@ void Asteroids::ActivateInvulnerability()
 	}
 	mInvulnerabilityPickup = nullptr;
 
-	// Show shield HUD label and start flashing it
+	mShieldTimeLeft = 5;
+	std::ostringstream msg;
+	msg << "SHIELD: " << mShieldTimeLeft << "s";
+	mShieldTimeLbl->SetText(msg.str());
+	mShieldTimeLbl->SetVisible(true);
+	SetTimer(1000, SHIELD_TICK);
+	
+	// Show shield HUD label and start flashing it  
 	mShieldLabel->SetVisible(true);
 	SetTimer(400, FLASH_SHIELD_OFF);
-
-	// Schedule deactivation after 5 seconds
+	
+	// Schedule deactivation after 5 seconds 
 	SetTimer(5000, END_INVULNERABILITY);
 }
 
@@ -863,6 +913,7 @@ void Asteroids::DeactivateInvulnerability()
 	mInvulnerable = false;
 	mSpaceship->SetInvulnerable(false);
 	mShieldLabel->SetVisible(false);
+	mShieldTimeLbl->SetVisible(false);
 }
 
 
