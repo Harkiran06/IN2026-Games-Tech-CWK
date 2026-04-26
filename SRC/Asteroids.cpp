@@ -11,7 +11,6 @@
 #include "BoundingSphere.h"
 #include "GUILabel.h"
 #include "Explosion.h"
-#include "InvulnerabilityPickup.h"
 
 #include <algorithm>
 #include <iostream>
@@ -810,8 +809,8 @@ void Asteroids::SpawnInvulnerabilityPickup()
 	shared_ptr<InvulnerabilityPickup> pickup = make_shared<InvulnerabilityPickup>();
 
 	// Random position well inside screen bounds
-	float x = ((rand() % 140) - 70) * 1.0f;   // roughly -70 to +70
-	float y = ((rand() % 100) - 50) * 1.0f;   // roughly -50 to +50
+	float x = ((rand() % 140) - 70) * 1.0f;
+	float y = ((rand() % 100) - 50) * 1.0f;
 	pickup->SetPosition(GLVector3f(x, y, 0));
 	pickup->SetVelocity(GLVector3f(0, 0, 0));
 	pickup->SetBoundingShape(
@@ -831,7 +830,7 @@ void Asteroids::SpawnInvulnerabilityPickup()
 	mInvulnerabilityPickupLabel->SetVerticalAlignment(GUIComponent::GUI_VALIGN_MIDDLE);
 	mGameDisplay->GetContainer()->AddComponent(
 		static_pointer_cast<GUIComponent>(mInvulnerabilityPickupLabel),
-		GLVector2f(0.5f, 0.85f));  // fixed position label — clearly visible
+		GLVector2f(0.5f, 0.85f));
 
 	// Schedule next spawn after 20 seconds
 	SetTimer(20000, SPAWN_INVULN_PICKUP);
@@ -865,6 +864,9 @@ void Asteroids::DeactivateInvulnerability()
 	mSpaceship->SetInvulnerable(false);
 	mShieldLabel->SetVisible(false);
 }
+
+
+
 
 
 

@@ -3,6 +3,8 @@
 
 #include "GameUtil.h"
 #include "GameSession.h"
+#include "BoundingShape.h"
+#include "BoundingSphere.h"
 #include "IKeyboardListener.h"
 #include "IGameWorldListener.h"
 #include "IScoreListener.h" 
@@ -18,6 +20,26 @@
 class GameObject;
 class Spaceship;
 class GUILabel;
+
+class InvulnerabilityPickup : public GameObject
+{
+public:
+	InvulnerabilityPickup()
+		: GameObject("InvulnerabilityPickup") {
+	}
+
+	bool CollisionTest(shared_ptr<GameObject> o)
+	{
+		if (o->GetType() != GameObjectType("Spaceship")) return false;
+		if (!mBoundingShape || !o->GetBoundingShape()) return false;
+		return mBoundingShape->CollisionTest(o->GetBoundingShape());
+	}
+
+	void OnCollision(const GameObjectList& objects)
+	{
+		mWorld->FlagForRemoval(GetThisPtr());
+	}
+};
 
 class Asteroids : public GameSession, public IKeyboardListener, public IGameWorldListener, public IScoreListener, public IPlayerListener
 {
@@ -139,6 +161,7 @@ private:
 	shared_ptr<GameObject> mInvulnerabilityPickup;
 	shared_ptr<GUILabel> mShieldLabel;
 	shared_ptr<GUILabel> mInvulnerabilityPickupLabel;
+
 
 	void SpawnInvulnerabilityPickup();
 	void ActivateInvulnerability();
